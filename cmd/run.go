@@ -56,14 +56,12 @@ func NewRunCommand() *cobra.Command {
 
 	runCommand.Flags().BoolP("detach", "d", false, "run container in background")
 	runCommand.Flags().StringP("workdir", "w", "", "working directory inside the container")
-	runCommand.Flags().StringArray("device", nil, "add host device to container")
-	runCommand.Flags().String("shm-size", "", "shm size")
-	runCommand.Flags().String("pids-limit", "", "pids limit")
-	runCommand.Flags().Bool("init", false, "run init")
-	runCommand.Flags().StringArray("add-host", nil, "add host")
-
-	// This does nothing, it's here for CLI compatibility with podman/docker
-	runCommand.Flags().StringArray("security-opt", nil, "security options")
+	runCommand.Flags().StringArray("device", nil, "add a host device to the container")
+	runCommand.Flags().String("shm-size", "", "size of /dev/shm")
+	runCommand.Flags().String("pids-limit", "", "tune container pids limit")
+	runCommand.Flags().Bool("init", false, "run an init inside the container that forwards signals and reaps processes")
+	runCommand.Flags().StringArray("add-host", nil, "add a custom host-to-IP mapping (host:ip)")
+	runCommand.Flags().StringArray("security-opt", nil, "security options for the container")
 
 	return runCommand
 }

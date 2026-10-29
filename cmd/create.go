@@ -51,14 +51,13 @@ func NewCreateCommand() *cobra.Command {
 	createCommand.Flags().StringP("hostname", "h", "", "set container hostname")
 	createCommand.Flags().StringP("user", "u", "root:root", "username or UID (format: <name|uid>[:<group|gid>])")
 
-	// This does nothing, it's here for CLI compatibility with podman/docker
 	createCommand.Flags().StringP("workdir", "w", "", "working directory inside the container")
-	createCommand.Flags().StringArray("device", nil, "add host device to container")
-	createCommand.Flags().String("shm-size", "", "shm size")
-	createCommand.Flags().Bool("init", false, "run init")
-	createCommand.Flags().StringArray("add-host", nil, "add host")
-	createCommand.Flags().StringArray("security-opt", nil, "security options")
-	createCommand.Flags().String("pids-limit", "", "")
+	createCommand.Flags().StringArray("device", nil, "add a host device to the container")
+	createCommand.Flags().String("shm-size", "", "size of /dev/shm")
+	createCommand.Flags().Bool("init", false, "run an init inside the container that forwards signals and reaps processes")
+	createCommand.Flags().StringArray("add-host", nil, "add a custom host-to-IP mapping (host:ip)")
+	createCommand.Flags().StringArray("security-opt", nil, "security options for the container")
+	createCommand.Flags().String("pids-limit", "", "tune container pids limit")
 	_ = createCommand.Flags().MarkHidden("pids-limit")
 
 	return createCommand
