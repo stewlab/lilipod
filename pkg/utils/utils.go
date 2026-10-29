@@ -208,9 +208,7 @@ func EnsureUNIXDependencies(ptyAgent []byte, busybox []byte) error {
 	for _, dep := range hardDependencies {
 		_, err := exec.LookPath(dep)
 		if err != nil {
-			logging.Log("failed to find dependency %s, can't recover.", dep)
-
-			return err
+			logging.LogWarning("dependency %s not found; will fallback to single-user rootless mapping if needed", dep)
 		}
 	}
 
@@ -237,7 +235,7 @@ func EnsureUNIXDependencies(ptyAgent []byte, busybox []byte) error {
 	logging.LogDebug("ensuring agent pty")
 
 	_, err := os.Stat(filepath.Join(LilipodBinPath, "pty"))
-	if err != nil {
+	if err != nil && len(ptyAgent) > 0 {
 		_ = os.MkdirAll(LilipodBinPath, os.ModePerm)
 
 		logging.LogWarning("failed to find dependency 'pty agent', will inject it")

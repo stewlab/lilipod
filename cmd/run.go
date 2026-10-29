@@ -54,8 +54,16 @@ func NewRunCommand() *cobra.Command {
 	runCommand.Flags().BoolP("interactive", "i", false, "keep process in foreground")
 	runCommand.Flags().BoolP("tty", "t", false, "allocate a pseudo-TTY. The default is false")
 
+	runCommand.Flags().BoolP("detach", "d", false, "run container in background")
+	runCommand.Flags().StringP("workdir", "w", "", "working directory inside the container")
+	runCommand.Flags().StringArray("device", nil, "add host device to container")
+	runCommand.Flags().String("shm-size", "", "shm size")
+	runCommand.Flags().String("pids-limit", "", "pids limit")
+	runCommand.Flags().Bool("init", false, "run init")
+	runCommand.Flags().StringArray("add-host", nil, "add host")
+
 	// This does nothing, it's here for CLI compatibility with podman/docker
-	runCommand.Flags().String("security-opt", "", "")
+	runCommand.Flags().StringArray("security-opt", nil, "security options")
 
 	return runCommand
 }
@@ -191,6 +199,24 @@ func run(cmd *cobra.Command, arguments []string) error {
 	uid := os.Getenv("PARENT_UID_MAP")
 	gid := os.Getenv("PARENT_GID_MAP")
 
+	detach, _ := cmd.Flags().GetBool("detach")
+	if detach {
+		interactive = false
+		tty = false
+	}
+
+	workdir, _ := cmd.Flags().GetString("workdir")
+	if workdir == "" {
+		workdir = "/"
+	}
+
+	devices, _ := cmd.Flags().GetStringArray("device")
+	for _, d := range devices {
+		if d != "" {
+			volume = append(volume, fmt.Sprintf("%s:%s", d, d))
+		}
+	}
+
 	createConfig := utils.Config{
 		ID:         containerutils.GetID(name),
 		Env:        env,
@@ -206,7 +232,7 @@ func run(cmd *cobra.Command, arguments []string) error {
 		Time:       timens,
 		User:       user,
 		Userns:     userns,
-		Workdir:    "/",
+		Workdir:    workdir,
 		Stopsignal: stopsignal,
 		Mounts:     append(mount, volume...),
 		Labels:     utils.ListToMap(label),
@@ -246,6 +272,10 @@ func run(cmd *cobra.Command, arguments []string) error {
 	}
 
 	logging.LogDebug("starting: %s", name)
+
+	if detach {
+		fmt.Println(containerutils.GetID(name))
+	}
 
 	return containerutils.Start(interactive, tty, config)
 }

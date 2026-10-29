@@ -2,7 +2,7 @@
 package cmd
 
 import (
-	"log"
+	"fmt"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/89luca89/lilipod/pkg/constants"
+	"github.com/89luca89/lilipod/pkg/fileutils"
 	"github.com/89luca89/lilipod/pkg/logging"
 	"github.com/89luca89/lilipod/pkg/procutils"
 	"github.com/spf13/cobra"
@@ -141,53 +142,49 @@ func setupUIDGIDMap(pid int) error {
 	logging.LogDebug("getting user subuid/subgid ranges")
 
 	uMaps, gMaps, err := procutils.GetSubIDRanges()
-	if err != nil {
-		return err
+	if err == nil && len(uMaps) >= 3 && len(gMaps) >= 3 {
+		if _, lookErr := exec.LookPath("newuidmap"); lookErr == nil {
+			uidMap := []string{
+				strconv.Itoa(pid),
+				"0",
+				uMaps[0],
+				"1",
+				"1",
+				uMaps[1],
+				uMaps[2],
+			}
+			gidMap := []string{
+				strconv.Itoa(pid),
+				"0",
+				gMaps[0],
+				"1",
+				"1",
+				gMaps[1],
+				gMaps[2],
+			}
+
+			logging.LogDebug("user subuid map is %v", uidMap)
+			logging.LogDebug("user subgid map is %v", gidMap)
+
+			cmd := exec.Command("newuidmap", uidMap...)
+			if out, err := cmd.CombinedOutput(); err == nil {
+				cmdGid := exec.Command("newgidmap", gidMap...)
+				outGid, errGid := cmdGid.CombinedOutput()
+				if errGid == nil {
+					return nil
+				}
+				logging.LogDebug("newgidmap failed: %s, falling back to direct proc mapping", string(outGid))
+			} else {
+				logging.LogDebug("newuidmap failed: %s, falling back to direct proc mapping", string(out))
+			}
+		}
 	}
 
-	uidMap := []string{
-		strconv.Itoa(pid),
-		"0",
-		uMaps[0],
-		"1",
-		"1",
-		uMaps[1],
-		uMaps[2],
-	}
-	gidMap := []string{
-		strconv.Itoa(pid),
-		"0",
-		gMaps[0],
-		"1",
-		"1",
-		gMaps[1],
-		gMaps[2],
-	}
-
-	logging.LogDebug("user subuid map is %v", uidMap)
-	logging.LogDebug("user subgid map is %v", gidMap)
-
-	cmd := exec.Command("newuidmap", uidMap...)
-
-	logging.LogDebug("setting uidmap: executing %v", cmd.Args)
-
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Fatal(string(out))
-
-		return err
-	}
-
-	cmd = exec.Command("newgidmap", gidMap...)
-
-	logging.LogDebug("setting gidmap: executing %v", cmd.Args)
-
-	out, err = cmd.CombinedOutput()
-	if err != nil {
-		log.Fatal(string(out))
-
-		return err
-	}
-
-	return nil
+	// Fallback: direct unprivileged single-user mapping (0 -> current user)
+	logging.LogDebug("using direct /proc uid/gid mapping")
+	uid := strconv.Itoa(os.Getuid())
+	gid := strconv.Itoa(os.Getgid())
+	_ = fileutils.WriteFile(fmt.Sprintf("/proc/%d/setgroups", pid), []byte("deny"), 0o644)
+	_ = fileutils.WriteFile(fmt.Sprintf("/proc/%d/uid_map", pid), []byte(fmt.Sprintf("0 %s 1\n", uid)), 0o644)
+	return fileutils.WriteFile(fmt.Sprintf("/proc/%d/gid_map", pid), []byte(fmt.Sprintf("0 %s 1\n", gid)), 0o644)
 }

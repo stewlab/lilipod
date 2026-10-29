@@ -52,9 +52,13 @@ func NewCreateCommand() *cobra.Command {
 	createCommand.Flags().StringP("user", "u", "root:root", "username or UID (format: <name|uid>[:<group|gid>])")
 
 	// This does nothing, it's here for CLI compatibility with podman/docker
-	createCommand.Flags().String("security-opt", "", "")
+	createCommand.Flags().StringP("workdir", "w", "", "working directory inside the container")
+	createCommand.Flags().StringArray("device", nil, "add host device to container")
+	createCommand.Flags().String("shm-size", "", "shm size")
+	createCommand.Flags().Bool("init", false, "run init")
+	createCommand.Flags().StringArray("add-host", nil, "add host")
+	createCommand.Flags().StringArray("security-opt", nil, "security options")
 	createCommand.Flags().String("pids-limit", "", "")
-	_ = createCommand.Flags().MarkHidden("security-opt")
 	_ = createCommand.Flags().MarkHidden("pids-limit")
 
 	return createCommand
@@ -199,6 +203,18 @@ func create(cmd *cobra.Command, arguments []string) error {
 	uid := os.Getenv("PARENT_UID_MAP")
 	gid := os.Getenv("PARENT_GID_MAP")
 
+	workdir, _ := cmd.Flags().GetString("workdir")
+	if workdir == "" {
+		workdir = "/"
+	}
+
+	devices, _ := cmd.Flags().GetStringArray("device")
+	for _, d := range devices {
+		if d != "" {
+			volume = append(volume, fmt.Sprintf("%s:%s", d, d))
+		}
+	}
+
 	createConfig := utils.Config{
 		ID:         containerutils.GetID(name),
 		Env:        env,
@@ -214,7 +230,7 @@ func create(cmd *cobra.Command, arguments []string) error {
 		Time:       timens,
 		User:       user,
 		Userns:     userns,
-		Workdir:    "/",
+		Workdir:    workdir,
 		Stopsignal: stopsignal,
 		Mounts:     append(mount, volume...),
 		Labels:     utils.ListToMap(label),
