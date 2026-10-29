@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"syscall"
 
@@ -312,12 +313,35 @@ func setupMounts(path string, conf utils.Config) error {
 	return nil
 }
 
+func extractMountDest(volume string) string {
+	if strings.Contains(volume, ",") {
+		for _, part := range strings.Split(volume, ",") {
+			if strings.HasPrefix(part, "destination=") {
+				return strings.TrimPrefix(part, "destination=")
+			}
+		}
+	}
+	parts := strings.Split(volume, ":")
+	if len(parts) > 1 {
+		return parts[1]
+	}
+	return parts[0]
+}
+
 // here we setup the custom mounts/volumes specified during creation. Reference
 // config is utils.Config.Mounts.
 // Specified mounts are in the form of src:dest:mode
 // For anonymous mountpoints, we create an empty dir in LILIPOD_HOME/volumes/ID/path.
 func setupVolumes(path string, conf utils.Config) error {
-	for _, volume := range conf.Mounts {
+	sortedMounts := make([]string, len(conf.Mounts))
+	copy(sortedMounts, conf.Mounts)
+	sort.SliceStable(sortedMounts, func(i, j int) bool {
+		destI := filepath.Clean(extractMountDest(sortedMounts[i]))
+		destJ := filepath.Clean(extractMountDest(sortedMounts[j]))
+		return len(strings.Split(destI, "/")) < len(strings.Split(destJ, "/"))
+	})
+
+	for _, volume := range sortedMounts {
 		if strings.Compare(volume, "") == 0 {
 			continue
 		}
@@ -420,6 +444,7 @@ func setupVolumes(path string, conf utils.Config) error {
 				return fmt.Errorf("error creating anonyous mount %s: %w", volume, err)
 			}
 
+			_ = os.MkdirAll(dest, os.ModePerm)
 			err = fileutils.MountBind(src, dest)
 			if err != nil {
 				logging.LogDebug("error: %+v", err)
@@ -452,12 +477,31 @@ func setupVolumes(path string, conf utils.Config) error {
 		source := mountings[0]
 		dest := filepath.Join(path, mountings[1])
 
+		// Support named volumes by placing them under lilipod volumes directory
+		if !filepath.IsAbs(source) {
+			source = filepath.Join(utils.GetLilipodHome(), "volumes", source)
+			_ = os.MkdirAll(source, 0o755)
+		}
+
 		logging.LogDebug("setting up mount: %s on %s as %s", source, dest, mode)
 
 		if !fileutils.Exist(source) {
 			logging.LogDebug("path %s does not exist on host", source)
 
 			return fmt.Errorf("path %s does not exist on host", source)
+		}
+
+		if fi, statErr := os.Stat(source); statErr == nil {
+			if fi.IsDir() {
+				_ = os.MkdirAll(dest, 0o755)
+			} else {
+				_ = os.MkdirAll(filepath.Dir(dest), 0o755)
+				if !fileutils.Exist(dest) {
+					if f, createErr := os.OpenFile(dest, os.O_CREATE|os.O_RDONLY, 0o644); createErr == nil {
+						_ = f.Close()
+					}
+				}
+			}
 		}
 
 		err := fileutils.Mount(source, dest, uintptr(modeUint))
@@ -668,9 +712,9 @@ func RunContainer(tty bool, conf utils.Config) error {
 
 	err = syscall.Chdir(conf.Workdir)
 	if err != nil {
-		logging.LogDebug("error: %+v", err)
+		logging.LogError("chdir %s error: %+v", conf.Workdir, err)
 
-		return err
+		return fmt.Errorf("chdir %s: %w", conf.Workdir, err)
 	}
 
 	logging.LogDebug("setting container hostname to %s", conf.Hostname)
@@ -719,9 +763,9 @@ func RunContainer(tty bool, conf utils.Config) error {
 
 	commandPath, err := exec.LookPath(command)
 	if err != nil {
-		logging.LogDebug("error: %+v", err)
+		logging.LogError("lookpath %s error: %+v", command, err)
 
-		return err
+		return fmt.Errorf("lookpath %s: %w", command, err)
 	}
 
 	if err := setCapabilities(keepCaps...); err != nil {

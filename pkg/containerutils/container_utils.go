@@ -609,7 +609,6 @@ func generateEnterCommand(config utils.Config) (*exec.Cmd, error) {
 
 		Setsid:     true,
 		Foreground: false,
-		Pdeathsig:  syscall.SIGTERM,
 	}
 
 	if config.Userns == constants.KeepID &&

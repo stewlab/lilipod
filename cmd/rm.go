@@ -4,8 +4,8 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/89luca89/lilipod/pkg/containerutils"
 	"github.com/89luca89/lilipod/pkg/fileutils"
@@ -23,7 +23,7 @@ func NewRmCommand() *cobra.Command {
 		PreRunE:          logging.Init,
 		RunE:             rm,
 		SilenceUsage:     true,
-		SilenceErrors:    true,
+		SilenceErrors:    false,
 		TraverseChildren: true,
 	}
 
@@ -31,6 +31,7 @@ func NewRmCommand() *cobra.Command {
 	rmCommand.Flags().BoolP("force", "f", false, "force remove container")
 	rmCommand.Flags().BoolP("all", "a", false, "remove all containers")
 	rmCommand.Flags().BoolP("help", "h", false, "show help")
+	rmCommand.Flags().String("log-level", "", "log messages above specified level")
 
 	return rmCommand
 }
@@ -39,22 +40,6 @@ func rm(cmd *cobra.Command, arguments []string) error {
 	force, err := cmd.Flags().GetBool("force")
 	if err != nil {
 		return err
-	}
-
-	if force {
-		err := exec.Command(os.Args[0], append([]string{"stop", "-f"}, arguments...)...).Run()
-		if err != nil {
-			return err
-		}
-	}
-
-	success, err := procutils.EnsureFakeRoot(true)
-	if err != nil {
-		return err
-	}
-
-	if success {
-		return nil
 	}
 
 	delAll, err := cmd.Flags().GetBool("all")
@@ -81,9 +66,43 @@ func rm(cmd *cobra.Command, arguments []string) error {
 		}
 	}
 
+	if force {
+		for _, container := range arguments {
+			if containerutils.IsRunning(container) {
+				_ = containerutils.Stop(container, true, 5)
+				for i := 0; i < 50; i++ {
+					if !containerutils.IsRunning(container) {
+						break
+					}
+					time.Sleep(50 * time.Millisecond)
+				}
+			}
+		}
+	}
+
+	success, err := procutils.EnsureFakeRoot(true)
+	if err != nil {
+		return err
+	}
+
+	if success {
+		return nil
+	}
+
 	for _, container := range arguments {
 		if containerutils.IsRunning(container) {
-			return fmt.Errorf("cannot remove container %s, as it is running", container)
+			if force {
+				_ = containerutils.Stop(container, true, 5)
+				for i := 0; i < 50; i++ {
+					if !containerutils.IsRunning(container) {
+						break
+					}
+					time.Sleep(50 * time.Millisecond)
+				}
+			}
+			if containerutils.IsRunning(container) {
+				return fmt.Errorf("cannot remove container %s, as it is running", container)
+			}
 		}
 
 		targetDIR := filepath.Join(containerutils.ContainerDir, container)

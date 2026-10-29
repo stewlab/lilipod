@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/89luca89/lilipod/pkg/containerutils"
 	"github.com/89luca89/lilipod/pkg/logging"
@@ -18,7 +19,7 @@ func NewEnterCommand() *cobra.Command {
 		Hidden:           true,
 		PreRunE:          logging.Init,
 		RunE:             enterContainer,
-		SilenceErrors:    true,
+		SilenceErrors:    false,
 		SilenceUsage:     true,
 		TraverseChildren: true,
 	}
@@ -26,6 +27,7 @@ func NewEnterCommand() *cobra.Command {
 	enterCommand.Flags().SetInterspersed(false)
 	enterCommand.Flags().Bool("tty", false, "")
 	enterCommand.Flags().String("config", "", "")
+	enterCommand.Flags().String("log-level", "", "log messages above specified level")
 
 	return enterCommand
 }
@@ -48,5 +50,10 @@ func enterContainer(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("invalid config: %+w", err)
 	}
 
-	return containerutils.RunContainer(tty, conf)
+	err = containerutils.RunContainer(tty, conf)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "enterContainer error: %+v\n", err)
+		return err
+	}
+	return nil
 }

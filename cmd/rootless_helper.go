@@ -29,12 +29,13 @@ func NewRootlessHelperCommand() *cobra.Command {
 		Hidden:           true,
 		PreRunE:          logging.Init,
 		RunE:             rootlessHelper,
-		SilenceErrors:    true,
+		SilenceErrors:    false,
 		SilenceUsage:     true,
 		TraverseChildren: true,
 	}
 
 	rootlessHelperCommand.Flags().SetInterspersed(false)
+	rootlessHelperCommand.Flags().String("log-level", "", "log messages above specified level")
 
 	return rootlessHelperCommand
 }
@@ -58,14 +59,19 @@ func rootlessHelper(_ *cobra.Command, arguments []string) error {
 func parent(arguments []string) error {
 	logging.LogDebug("parent: preparing to fork child")
 
-	cmd := exec.Command(os.Args[0], append([]string{
-		"rootless-helper",
-		"--log-level",
-		logging.GetLogLevel(),
-	}, arguments...)...)
+	childReady := make(chan os.Signal, 1)
+	signal.Notify(childReady, syscall.SIGCHLD)
+	defer signal.Stop(childReady)
+
+	childArgs := []string{"rootless-helper"}
+	if lvl := logging.GetLogLevel(); lvl != "" {
+		childArgs = append(childArgs, "--log-level", lvl)
+	}
+	childArgs = append(childArgs, arguments...)
+
+	cmd := exec.Command(os.Args[0], childArgs...)
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Pdeathsig:  syscall.SIGTERM,
 		Cloneflags: syscall.CLONE_NEWUSER | syscall.CLONE_NEWNS,
 	}
 
@@ -82,11 +88,8 @@ func parent(arguments []string) error {
 		return err
 	}
 
-	childReady := make(chan os.Signal, 1)
-
 	logging.LogDebug("parent: waiting for child to start")
 
-	signal.Notify(childReady, syscall.SIGCHLD)
 	<-childReady
 
 	logging.LogDebug("parent: child is ready")
@@ -115,12 +118,15 @@ func child(arguments []string) error {
 
 	logging.LogDebug("child: waiting for uid/gid map to be complete")
 	// we're child, wait for GID to become 0
+	deadline := time.Now().Add(5 * time.Second)
 	for {
-		if os.Getuid() != 0 || os.Getegid() != 0 {
-			time.Sleep(time.Millisecond * 5)
-		} else {
+		if os.Getuid() == 0 && os.Getegid() == 0 {
 			break
 		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timeout waiting for uid/gid mapping (uid=%d gid=%d)", os.Getuid(), os.Getegid())
+		}
+		time.Sleep(time.Millisecond * 5)
 	}
 
 	logging.LogDebug("child: now we're fake root")

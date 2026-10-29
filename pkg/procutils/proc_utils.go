@@ -2,8 +2,6 @@
 package procutils
 
 import (
-	"bufio"
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -11,7 +9,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -365,109 +362,31 @@ func RunInteractive(cmd *exec.Cmd) error {
 	return cmd.Wait()
 }
 
-// RunDetached will run input cmd and redurect all outputs to logfile.
-// No stdin is set up.
+// RunDetached will run input cmd in the background and redirect all outputs to logfile.
 func RunDetached(cmd *exec.Cmd, logfile string) error {
-	logging.LogDebug("no interactive and no tty, setting up process log file")
+	logging.LogDebug("starting process detached in background, redirecting output to %s", logfile)
 
-	// non interactive mode, save stdout and stderr to file and disown
-	cmd.SysProcAttr.Foreground = false
-	cmd.SysProcAttr.Setsid = true
-
-	// ensure we either create the file, or truncate the existing one
-	// so that we always start fresh
-	_, err := os.Create(logfile)
-	if err != nil {
-		logging.LogDebug("%v", err)
-	}
-
-	logging.LogDebug("no interactive and no tty, setting up process pipes")
-
-	outR, outW := io.Pipe()
-	errR, errW := io.Pipe()
-	cmd.Stdout = io.Writer(outW)
-	cmd.Stderr = io.Writer(errW)
-
-	stdinLines := make(chan string)
-	stderrLines := make(chan string)
-
-	var wg sync.WaitGroup
-
-	wg.Add(5)
-
-	go func() {
-		defer wg.Done()
-
-		for line := range stdinLines {
-			line := fmt.Sprintf("%d:out:%s", time.Now().Unix(), line)
-
-			err := logging.AppendStringToFile(logfile, line)
-			if err != nil {
-				logging.LogError("could not log output: %v", err)
-			}
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
-		defer close(
-			stdinLines,
-		) // close on exit: when the scanner has no more to read, or has encountered an error.
-
-		scanner := bufio.NewScanner(outR)
-
-		for scanner.Scan() {
-			stdinLines <- scanner.Text()
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
-
-		for line := range stderrLines {
-			line := fmt.Sprintf("%d:err:%s", time.Now().Unix(), line)
-
-			err := logging.AppendStringToFile(logfile, line)
-			if err != nil {
-				logging.LogError("could not log output: %v", err)
-			}
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
-		defer close(
-			stderrLines,
-		) // close on exit: when the scanner has no more to read, or has encountered an error.
-
-		scanner := bufio.NewScanner(errR)
-
-		for scanner.Scan() {
-			stderrLines <- scanner.Text()
-		}
-	}()
-
-	// keep an eye on the child process, and exit if dead
-	go func() {
-		defer wg.Done()
-
-		for {
-			time.Sleep(time.Second * 5)
-
-			if !IsPidRunning(cmd.Process.Pid) {
-				os.Exit(0)
-			}
-		}
-	}()
-
-	logging.LogDebug("no interactive and no tty, start process in background")
-
-	err = cmd.Start()
+	logFile, err := os.OpenFile(logfile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
 		return err
 	}
+	cmd.Stdout = logFile
+	cmd.Stderr = logFile
 
-	wg.Wait()
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	cmd.SysProcAttr.Foreground = false
+	if cmd.SysProcAttr.Cloneflags == 0 {
+		cmd.SysProcAttr.Setsid = true
+	}
 
-	return cmd.Wait()
+	err = cmd.Start()
+	if err != nil {
+		_ = logFile.Close()
+		return err
+	}
+
+	_ = logFile.Close()
+	return cmd.Process.Release()
 }
