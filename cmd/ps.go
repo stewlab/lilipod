@@ -8,10 +8,10 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/89luca89/lilipod/pkg/constants"
-	"github.com/89luca89/lilipod/pkg/containerutils"
-	"github.com/89luca89/lilipod/pkg/logging"
-	"github.com/89luca89/lilipod/pkg/utils"
+	"github.com/stewlab/lilipod/pkg/constants"
+	"github.com/stewlab/lilipod/pkg/containerutils"
+	"github.com/stewlab/lilipod/pkg/logging"
+	"github.com/stewlab/lilipod/pkg/utils"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 )

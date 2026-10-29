@@ -4,7 +4,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/89luca89/lilipod/pkg/constants"
+	"github.com/stewlab/lilipod/pkg/constants"
 	"github.com/spf13/cobra"
 )
 

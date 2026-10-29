@@ -9,7 +9,7 @@ clean:
 
 lilipod:
 	@rm -f lilipod
-	CGO_ENABLED=0 go build -mod vendor -ldflags="-s -w -X 'github.com/89luca89/lilipod/pkg/constants.Version=$${RELEASE_VERSION:-0.0.0}'" -o lilipod main.go
+	CGO_ENABLED=0 go build -mod vendor -ldflags="-s -w -X 'github.com/stewlab/lilipod/pkg/constants.Version=$${RELEASE_VERSION:-0.0.0}'" -o lilipod main.go
 
 coverage:
 	@rm -rf coverage/*

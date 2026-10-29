@@ -12,8 +12,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/89luca89/lilipod/pkg/constants"
-	"github.com/89luca89/lilipod/pkg/logging"
+	"github.com/stewlab/lilipod/pkg/constants"
+	"github.com/stewlab/lilipod/pkg/logging"
 )
 
 // EnsureFakeRoot will ensure process is executed with rootless-helper.

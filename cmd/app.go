@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/89luca89/lilipod/pkg/constants"
-	"github.com/89luca89/lilipod/pkg/containerutils"
-	"github.com/89luca89/lilipod/pkg/imageutils"
-	"github.com/89luca89/lilipod/pkg/utils"
+	"github.com/stewlab/lilipod/pkg/constants"
+	"github.com/stewlab/lilipod/pkg/containerutils"
+	"github.com/stewlab/lilipod/pkg/imageutils"
+	"github.com/stewlab/lilipod/pkg/utils"
 	"github.com/spf13/cobra"
 )
 

@@ -14,9 +14,9 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/89luca89/lilipod/pkg/fileutils"
-	"github.com/89luca89/lilipod/pkg/logging"
-	"github.com/89luca89/lilipod/pkg/utils"
+	"github.com/stewlab/lilipod/pkg/fileutils"
+	"github.com/stewlab/lilipod/pkg/logging"
+	"github.com/stewlab/lilipod/pkg/utils"
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/legacy"
 	"github.com/google/go-containerregistry/pkg/name"

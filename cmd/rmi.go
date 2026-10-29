@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/89luca89/lilipod/pkg/fileutils"
-	"github.com/89luca89/lilipod/pkg/imageutils"
-	"github.com/89luca89/lilipod/pkg/logging"
+	"github.com/stewlab/lilipod/pkg/fileutils"
+	"github.com/stewlab/lilipod/pkg/imageutils"
+	"github.com/stewlab/lilipod/pkg/logging"
 	"github.com/spf13/cobra"
 )
 

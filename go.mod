@@ -1,4 +1,4 @@
-module github.com/89luca89/lilipod
+module github.com/stewlab/lilipod
 
 go 1.23.0
 

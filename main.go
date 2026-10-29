@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only
 
 This file is part of the lilipod project:
-   https://github.com/89luca89/lilipod
+   https://github.com/stewlab/lilipod
 
 Copyright (C) 2023 lilipod contributors
 
@@ -22,7 +22,7 @@ package main
 import (
 	"log"
 
-	"github.com/89luca89/lilipod/cmd"
+	"github.com/stewlab/lilipod/cmd"
 )
 
 func main() {

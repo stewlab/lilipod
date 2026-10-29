@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/89luca89/lilipod/pkg/constants"
-	"github.com/89luca89/lilipod/pkg/fileutils"
-	"github.com/89luca89/lilipod/pkg/logging"
+	"github.com/stewlab/lilipod/pkg/constants"
+	"github.com/stewlab/lilipod/pkg/fileutils"
+	"github.com/stewlab/lilipod/pkg/logging"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 )

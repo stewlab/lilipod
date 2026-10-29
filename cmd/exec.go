@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/89luca89/lilipod/pkg/containerutils"
-	"github.com/89luca89/lilipod/pkg/fileutils"
-	"github.com/89luca89/lilipod/pkg/logging"
-	"github.com/89luca89/lilipod/pkg/utils"
+	"github.com/stewlab/lilipod/pkg/containerutils"
+	"github.com/stewlab/lilipod/pkg/fileutils"
+	"github.com/stewlab/lilipod/pkg/logging"
+	"github.com/stewlab/lilipod/pkg/utils"
 	"github.com/spf13/cobra"
 )
 

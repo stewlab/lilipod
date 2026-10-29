@@ -11,12 +11,12 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/89luca89/lilipod/pkg/constants"
-	"github.com/89luca89/lilipod/pkg/fileutils"
-	"github.com/89luca89/lilipod/pkg/imageutils"
-	"github.com/89luca89/lilipod/pkg/logging"
-	"github.com/89luca89/lilipod/pkg/procutils"
-	"github.com/89luca89/lilipod/pkg/utils"
+	"github.com/stewlab/lilipod/pkg/constants"
+	"github.com/stewlab/lilipod/pkg/fileutils"
+	"github.com/stewlab/lilipod/pkg/imageutils"
+	"github.com/stewlab/lilipod/pkg/logging"
+	"github.com/stewlab/lilipod/pkg/procutils"
+	"github.com/stewlab/lilipod/pkg/utils"
 	"github.com/moby/sys/capability"
 )
 

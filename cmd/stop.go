@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/89luca89/lilipod/pkg/containerutils"
-	"github.com/89luca89/lilipod/pkg/fileutils"
-	"github.com/89luca89/lilipod/pkg/logging"
+	"github.com/stewlab/lilipod/pkg/containerutils"
+	"github.com/stewlab/lilipod/pkg/fileutils"
+	"github.com/stewlab/lilipod/pkg/logging"
 	"github.com/spf13/cobra"
 )
 
